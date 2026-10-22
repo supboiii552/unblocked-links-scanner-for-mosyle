@@ -1,39 +1,39 @@
 <!DOCTYPE html>
 <html>
 <body style="background:#111;color:#fff;font-family:sans-serif;padding:20px;">
-  <button onclick="check()" style="padding:10px 20px;font-size:16px;">run text scan</button>
+  <button onclick="check()" style="padding:10px 20px;font-size:16px;">run fast scan</button>
   <div id="out" style="margin-top:20px;"></div>
   <script>
   async function check() {
     const out = document.getElementById('out');
-    out.innerHTML = "fetching list...";
-    const res = await fetch('https://raw.githubusercontent.com/yourworstnightmare1/proxy-list/main/list.md');
+    out.innerHTML = "fetching unsorted list...";
+    const res = await fetch('https://yourworstnightmare1.github.io/proxy-list/unsorted.html');
     const text = await res.text();
     const urls = [...new Set(text.match(/https?:\/\/[^\s\)"']+/g) || [])];
     
-    out.innerHTML = `scaning ${urls.length} links via text match...<br><br>`;
+    out.innerHTML = `scanning ${urls.length} links fast...<br><br>`;
     
-    for (let u of urls) {
-      let status = "WORKING";
-      let color = "#0f0";
-      
-      try {
-        // use a public cors proxy or direct fetch to read text
-        const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(u);
-        const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
-        const data = await r.json();
-        const html = (data.contents || "").toLowerCase();
-        
-        if (!data.contents || html.includes("mosyle") || html.includes("blocked domain")) {
-          status = "MOSYLE BLOCKED";
+    const batchSize = 10;
+    for (let i = 0; i < urls.length; i += batchSize) {
+      const batch = urls.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (u) => {
+        let status = "WORKING";
+        let color = "#0f0";
+        try {
+          const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(u);
+          const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(4000) });
+          const data = await r.json();
+          const html = (data.contents || "").toLowerCase();
+          if (!data.contents || html.includes("mosyle") || html.includes("blocked domain")) {
+            status = "BLOCKED";
+            color = "#f00";
+          }
+        } catch (err) {
+          status = "DEAD";
           color = "#f00";
         }
-      } catch (err) {
-        status = "DOWN / DEAD";
-        color = "#f00";
-      }
-      
-      out.innerHTML += `<span style="color:${color};">[${status}] ${u}</span><br>`;
+        out.innerHTML += `<span style="color:${color};">[${status}] ${u}</span><br>`;
+      }));
     }
   }
   </script>
