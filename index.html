@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <body style="background:#111;color:#fff;font-family:sans-serif;padding:20px;">
-  <button onclick="check()" style="padding:10px 20px;font-size:16px;">run fast scan</button>
+  <button onclick="check()" style="padding:10px 20px;font-size:16px;">run fixed scan</button>
   <div id="out" style="margin-top:20px;"></div>
   <script>
   async function check() {
@@ -9,9 +9,12 @@
     out.innerHTML = "fetching unsorted list...";
     const res = await fetch('https://yourworstnightmare1.github.io/proxy-list/unsorted.html');
     const text = await res.text();
-    const urls = [...new Set(text.match(/https?:\/\/[^\s\)"']+/g) || [])];
     
-    out.innerHTML = `scanning ${urls.length} links fast...<br><br>`;
+    // extract and clean urls to strip trailing quotes/html tags
+    const rawMatches = text.match(/https?:\/\/[^\s\)"']+/g) || [];
+    const urls = [...new Set(rawMatches.map(u => u.replace(/["'>]/g, '')))];
+    
+    out.innerHTML = `scanning ${urls.length} cleaned links...<br><br>`;
     
     const batchSize = 10;
     for (let i = 0; i < urls.length; i += batchSize) {
